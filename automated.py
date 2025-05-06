@@ -8,9 +8,12 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.agents.agent_types import AgentType
 import io
 
+# ui enhancements
+from IPython.display import Markdown, display
+import contextlib
 
 # 📌 OpenAI API key
-api_key = "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"
+api_key = st.secrets["openai_api_key"]
 
 # Page config
 st.set_page_config(page_title="Advanced CSV Explorer", layout="wide")
@@ -38,7 +41,7 @@ if uploaded_file:
     agent = create_pandas_dataframe_agent(
         ChatOpenAI(
             temperature=0,
-            model="gpt-4o-mini-2024-07-18",
+            model="gpt-4.1-2025-04-14",
             api_key=api_key
         ),
         df,
@@ -46,12 +49,22 @@ if uploaded_file:
         agent_type=AgentType.OPENAI_FUNCTIONS,
         **{"allow_dangerous_code": True}
     )
-    
+    def display_clean_output(agent, prompt):
+        buffer = io.StringIO()
+
+        # stdout'u geçici olarak yönlendiriyoruz (böylece zincir mesajları bastırılıyor)
+        with contextlib.redirect_stdout(buffer):
+            result = agent.invoke(prompt)
+
+        # Sadece temiz 'output' kısmını gösteriyoruz
+        output = result.get("output", "").strip()
+        st.markdown(output)
+
+
     # Ask prompt
     prompt = st.text_input("💬 Ask a question about your data")
-    
+
     if prompt:
         with st.spinner("Thinking..."):
-            response = agent.invoke(prompt)
-            st.success("✅ Answer:")
-            st.markdown(f"> {response['output']}")
+            # Display the clean output
+            display_clean_output(agent, prompt)
